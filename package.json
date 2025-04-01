@@ -35,6 +35,9 @@
     "start": "node app.js",
     "dev": "npx nodemon app"
   },
+  "engines": {
+    "node": "18.x"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/emdo2841/ecommerce-store.git"
