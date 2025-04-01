@@ -1,0 +1,16 @@
+.env
+# Node.js dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# Logs
+*.log
+logs/
+
+# Babel output
+dist/
+
+# Debugging files
+*.debug
