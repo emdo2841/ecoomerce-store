@@ -21,7 +21,14 @@ productRoute.post(
 );
 
 
-productRoute.get("/", productController.getProducts );
+productRoute.get("/", productController.getProducts);
+productRoute.get("/flash-sale", productController.getflashSaleProducts)
+productRoute.get(
+  "/out-of-stock",
+  isAuthenticated,
+  checkRole("admin"), // Only admins can access this route
+  productController.getOutOfStockProducts
+);
 
 productRoute.put('/:id', isAuthenticated, productController.updateProductById);
 productRoute.get('/:id',productController.getProductsById)

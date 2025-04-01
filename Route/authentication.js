@@ -33,10 +33,6 @@ authenticate.put("/update-role/:id",
   authorizeRole("admin"),authController.updateRole
 )
 
-//  this function check
-authenticate.get("/status", authController.checkStatus);
-
-
 authenticate.get("/logout", authController.logout);
 
 authenticate.delete(
@@ -48,12 +44,30 @@ authenticate.delete(
 
 
 
-
 // 📌 Forget Password Route
 authenticate.post("/forgot-password", authController.forgotPassword);
 // 📌 Reset Password Route
 authenticate.post("/reset-password/:token", authController.resetPassword);
 authenticate.put("/update-password", isAuthenticated, authController.updatePassword);
+authenticate.get("/staff", isAuthenticated, authorizeRole("admin"), authController.getStaff);
+authenticate.get(
+  "/admin",
+  isAuthenticated,
+  authorizeRole("admin"),
+  authController.getAdmins
+);
+authenticate.get(
+  "/user-role",
+  isAuthenticated,
+  authorizeRole("admin"),
+  authController.getOnlyUsers
+);
+authenticate.get(
+  "/admin-staff",
+  isAuthenticated,
+  authorizeRole("admin"),
+  authController.getAdminsOrStaffS
+);
 
 
 module.exports = authenticate;

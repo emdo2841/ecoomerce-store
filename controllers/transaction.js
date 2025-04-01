@@ -6,6 +6,7 @@ require("dotenv").config
 const axios = require("axios");
 const crypto = require("crypto");
 const paginate = require("../utilities/paginate");
+const sendEmail = require("../utilities/sendEmail");
 
 
 
@@ -30,7 +31,6 @@ exports.getUserTransaction = async (req, res) => {
       data: transactions,
     });
   } catch (error) {
-    console.error("Error fetching transactions:", error);
     res.status(500).json({ error: "Server error" });
   }
 };
@@ -138,7 +138,7 @@ exports.createTransaction = async (req, res) => {
           email,
           amount: totalPrice * 100, // Convert to kobo
           reference,
-          callback_url: `${process.env.PAYSTACK_CALLBACK_URL}/verify-payment`,
+          callback_url: `${process.env.PAYSTACK_CALLBACK_URL}/verify-payment/${refernce}`,
         },
         {
           headers: {
@@ -156,10 +156,9 @@ exports.createTransaction = async (req, res) => {
       });
     });
   } catch (error) {
-    console.error("Error creating transaction:", error);
     return res
       .status(500)
-      .json({ error: error.message || "Internal server error" });
+      .json({ error: error.message || "Internal server error", error });
   } finally {
     session.endSession(); // Ensure the session is closed properly
   }
@@ -188,7 +187,10 @@ exports.verifyPayment = async (req, res) => {
 
     if (paymentData.status && paymentData.data.status === "success") {
       // Find the transaction in DB
-      const transaction = await Transaction.findOne({ reference });
+      const transaction = await Transaction.findOne({ reference }).populate(
+        "user",
+        "firstname email"
+      );
 
       if (!transaction) {
         return res.status(404).json({ error: "Transaction not found" });
@@ -205,19 +207,34 @@ exports.verifyPayment = async (req, res) => {
       transaction.status = "completed";
       await transaction.save();
 
+      // Send payment success email
+      const transactionDetails = {
+        transactionId: transaction.reference,
+        amount: transaction.totalPrice,
+        date: transaction.createdAt.toLocaleString(),
+      };
+
+      await sendEmail(
+        transaction.user.email,
+        transaction.user.firstname,
+        null,
+        false,
+        true, // isPaymentSuccess
+        transactionDetails
+      );
+
       return res.status(200).json({
         message: "Payment verified successfully",
         transaction,
+        redirect: "/payment-success",
       });
     } else {
       return res.status(400).json({ error: "Payment verification failed" });
     }
   } catch (error) {
-    console.error("Error verifying payment:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error", details: error.message });
   }
 };
-
 exports.getAllTransaction = async (req, res) => {
   const { page, limit, skip } = paginate(req); // Use the paginate utility to get pagination details
   try {
@@ -229,17 +246,12 @@ exports.getAllTransaction = async (req, res) => {
       .populate("products.product", "name discountedPrice") // Populate product details
       .exec();
 
-    if (transactions.length === 0) {
-      return res.status(404).json({ message: "No transactions found" });
-    }
-
     res.status(200).json({
       success: true,
       message: "Transactions fetched successfully",
       data: transactions,
     });
   } catch (error) {
-    console.error("Error fetching transactions:", error);
     res.status(500).json({ error: "Server error" });
   }
 }

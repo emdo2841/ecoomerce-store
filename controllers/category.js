@@ -13,7 +13,6 @@ exports.createCategory = async (req, res) => {
         const newCategory = await Category.create({ name, description });
         res.status(201).json({ message: "Category created successfully", category: newCategory });
     } catch (error) {
-        console.log(error)
         res.status(500).json({ message: error.message });
     }
 }
@@ -21,12 +20,8 @@ exports.getAllCategory = async (req, res) => {
     const { page, limit } = paginate(req)
     try {
         const categories = await Category.find({}).limit(limit).skip(page).sort({ createdAt: -1 })// Sort by newest
-        if (categories.length === 0) {
-            return res.status(404).json({ message: "No categories found" });
-        }
         res.status(200).json(categories)
     } catch (error) {
-        console.log(error)
         res.status(500).json({ message: error.message });
     }
 }
@@ -39,7 +34,6 @@ exports.getCategoryById = async (req,res) =>{
         }
         res.status(200).json(category)
     } catch (error) {
-        console.log(error)
         res.status(500).json({ message: error.message });
     }
 }
@@ -64,20 +58,12 @@ exports.getProductByCategoryId = async (req, res) => {
         .populate("brand", "name")
             .exec();
 
-        if (products.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "No products found for the specified category",
-            });
-        }
-
         res.status(200).json({
             success: true,
             message: "Products fetched successfully",
             data: products,
         });
     } catch (error) {
-        console.log("❌ Error fetching products by category:", error);
         res.status(500).json({ error: "Server error", details: error.message });
     }
 };
@@ -92,7 +78,6 @@ exports.deleteProductByCategoryId = async (req, res) => {
             return res.status(404).json({ message: "Category not found" });
         }
     }catch(error){
-        console.log(error)
         res.status(500).json({ message: error.message });
     }
 }

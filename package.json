@@ -26,5 +26,27 @@
     "eslint": "^9.23.0",
     "globals": "^16.0.0",
     "nodemon": "^3.1.9"
-  }
+  },
+  "name": "ecommerce",
+  "description": "shop online without stress",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "npx nodemon app"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/emdo2841/ecommerce-store.git"
+  },
+  "keywords": [
+    "online",
+    "store"
+  ],
+  "author": "Joanthan Emmanuel",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/emdo2841/ecommerce-store/issues"
+  },
+  "homepage": "https://github.com/emdo2841/ecommerce-store#readme"
 }

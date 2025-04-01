@@ -16,10 +16,12 @@ exports.getAllBrand = async (req, res) => {
     try {
         const { page, limit } = paginate(req)
         const brands = await Brand.find().limit(limit).skip(page).sort({ createdAt: -1 })// Sort by newest;
-        if (brands.length === 0) {
-            return res.status(404).json({ message: "No brands found" });
-        }
-        res.send(brands);
+        res.status(200).json({
+            success: true,
+            message: "Brands fetched successfully",
+            data: brands,
+        })
+        
     } catch (error) {
         res.status(500).send(error);
     }
@@ -85,12 +87,6 @@ exports.getProductByBrandId = async (req, res) => {
           .populate("brand", "name")
           .exec();;
 
-        if (products.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "No products found for the specified brand",
-            });
-        }
 
         res.status(200).json({
             success: true,
@@ -98,7 +94,6 @@ exports.getProductByBrandId = async (req, res) => {
             data: products,
         });
     } catch (error) {
-        console.log("❌ Error fetching products by brand:", error);
         res.status(500).json({ error: "Server error", details: error.message });
     }
 };

@@ -4,15 +4,18 @@ const { uploadToCloudinary } = require('../utilities/cloudinary')
 require("dotenv").config();
 const sendEmail = require("../utilities/sendEmail");
 const crypto = require("crypto");
+const paginate = require('../utilities/paginate')
 
 exports.creatUser = async (req, res) => {
     try {
 
         // const imageUrls = await Promise.all(req.files.map(file => uploadToCloudinary(file.path)));
         const imageUrl = req.file ? await uploadToCloudinary(req.file.path) : null;
-        const { firstname, lastname, email, dob, role, password } = req.body;
+        const { firstname, lastname, email, dob, password, address, phone } = req.body;
 
-
+        if (!firstname || !lastname || !email || !password || !address || !phone) {
+            return res.status(400).json({ success: false, message: "Please fill all fields" });
+        }
         // Check if the email already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
@@ -27,8 +30,10 @@ exports.creatUser = async (req, res) => {
             firstname,
             lastname,
             dob: dob || null, // Optional DOB
-            role: role || "user",
-            image: imageUrl
+            role: "user",
+            image: imageUrl,
+            address,
+            phone
 
         });
 
@@ -42,9 +47,9 @@ exports.creatUser = async (req, res) => {
             data: newUser,
         });
         sendEmail(email, firstname);
-    } catch (err) {
-        console.error(err);
-        res.status(500).send({ success: false, message: "Server error" });
+    } catch (err) { 
+        
+        res.status(500).send({ success: false, message: "Server error", err });
     }
 };
 
@@ -60,27 +65,99 @@ exports.getUserById = async (req, res) => {
 
         res.json({ success: true, user });
     } catch (err) {
-        console.error(err);
         res.status(500).json({ success: false, message: "Server error" });
     }
 };
 
 exports.getUsers = async (req, res) => {
     try {
-        const users = await User.find({ _id: { $ne: req.user._id } }) // 🔥 Exclude logged-in user
+        const {limit, page} = paginate(req)
+        const users = await User.find({ _id: { $ne: req.user._id } })
+        .limit(limit).skip(page).sort({ createdAt: -1 })// Sort by newest// 🔥 Exclude logged-in user
             .select("-password"); // Exclude passwords for security
 
         res.json({ success: true, users });
     } catch (err) {
-        console.error(err);
         res.status(500).json({ success: false, message: "Server error" });
     }
 };
 
-exports.login = (req, res) => {         
-    res.json({ success: true, message: "Logged in successfully", user: req.user, redirect: "/" });
+exports.login = (req, res) => {
+    // console.log("✅ User Logged In:", req.user);
+    res.json({ success: true, user: req.user });                
+};
+// return admins only
+exports.getAdmins = async (req, res) => {
+  try {
+    const { limit, page } = paginate(req);
+
+    // Find users with the role "admin"
+    const users = await User.find({ role: "admin" })
+      .limit(limit)
+      .skip(page)
+      .sort({ createdAt: -1 }) // Sort by newest
+      .select("-password"); // Exclude passwords for security
+    res.json({ success: true, users });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
 };
 
+// return staff only
+exports.getStaff = async (req, res) => {
+  try {
+    const { limit, page } = paginate(req);
+
+    // Find users with the role "admin"
+    const users = await User.find({ role: "staff" })
+      .limit(limit)
+      .skip(page)
+      .sort({ createdAt: -1 }) // Sort by newest
+      .select("-password"); // Exclude passwords for security
+
+    res.json({ success: true, users });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+ 
+// return users only
+
+exports.getOnlyUsers = async (req, res) => {
+  try {
+    const { limit, page } = paginate(req);
+
+    // Find users with the role "admin"
+    const users = await User.find({ role: "user" })
+      .limit(limit)
+      .skip(page)
+      .sort({ createdAt: -1 }) // Sort by newest
+      .select("-password"); // Exclude passwords for security
+
+    res.json({ success: true, users });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// return admins or staff only
+exports.getAdminsOrStaffS = async (req, res) => {
+  try {
+    const { limit, page } = paginate(req);
+
+    // Find users with roles "admin" or "staff"
+    const users = await User.find({ role: { $in: ["admin", "staff"] } })
+      .limit(limit)
+      .skip(page)
+      .sort({ createdAt: -1 }) // Sort by newest
+      .select("-password"); // Exclude passwords for security
+
+
+    res.json({ success: true, users });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
 exports.updateRole = async (req, res) => {
     try {
         const { role } = req.body;
@@ -96,17 +173,10 @@ exports.updateRole = async (req, res) => {
 
         res.json({ success: true, message: "User role updated", redirect: "/users" });
     } catch (err) {
-        console.error(err);
         res.status(500).json({ success: false, message: "Server error" });
     }
 };
-exports.checkStatus = (req, res) => {
-    if (req.isAuthenticated()) {
-        res.json({ isAuthenticated: true, user: req.user });
-    } else {
-        res.json({ isAuthenticated: false });
-    }
-}
+
 
 exports.logout = (req, res) => {
     req.logout((err) => {
@@ -155,7 +225,6 @@ exports.forgotPassword = async (req, res) => {
         res.json({ message: "Password reset email sent!" });
 
     } catch (error) {
-        console.error(error);
         res.status(500).json({ error: "Internal server error" });
     }
 }
@@ -177,7 +246,6 @@ exports.resetPassword = async (req, res) => {
         // 2️⃣ Update the user's password
         user.setPassword(password, async function (err) {
             if (err) {
-                console.error("Error in setPassword:", err);
                 return res.status(500).json({ message: "Error updating password" });
             }
 
@@ -191,7 +259,6 @@ exports.resetPassword = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
         res.status(500).json({ message: "Server error", error });
     }
 }
@@ -214,7 +281,6 @@ exports.updatePassword = async (req, res) => {
             // Set the new password
             user.setPassword(newPassword, async (err) => {
               if (err) {
-                console.error("Error in setPassword:", err);
                 return res
                   .status(500)
                   .json({ message: "Error updating password" });
@@ -231,7 +297,6 @@ exports.updatePassword = async (req, res) => {
             });
         });
     } catch (error) {
-        console.log(error)
         res.status(500).json({ message: "Server error", error });
     }
 }

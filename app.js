@@ -90,13 +90,12 @@ passport.deserializeUser(async (id, done) => {
         // console.log("🔄 Deserializing User ID:", id);
         const user = await User.findById(id);
         if (!user) {
-            console.log("❌ No user found in DB for ID:", id);
             return done(null, false);
         }
         // console.log("✅ User found:", user);
         done(null, user);
     } catch (error) {
-        console.log("❌ Error deserializing user:", error);
+
         done(error, null);
     }
 });
@@ -110,18 +109,10 @@ app.use("/api/transact", isAuthenticated, transactionRoute);
 app.get("/", (req, res) => {
     res.status(200).send("homepage");
 });
-app.get("/auth/user", (req, res) => {
-    // console.log("Session Data:", req.session);
-    if (req.isAuthenticated()) {
-        return res.json({ user: req.user });
-    }
-    res.status(401).json({ error: "No active user session" });
-});
+
 
 const port = process.env.PORT || 7070;
-app.listen(port, "0.0.0.0", () => console.log(`Server running on port ${port}`));
-// Debug login route
-authenticateRoute.post("/login", passport.authenticate("local"), (req, res) => {
-    // console.log("✅ User Logged In:", req.user);
-    res.json({ success: true, user: req.user });                
+app.listen(port, "0.0.0.0", () => {
 });
+// Debug login route
+

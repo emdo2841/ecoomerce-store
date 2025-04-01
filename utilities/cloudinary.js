@@ -5,9 +5,9 @@ require('dotenv').config();
 
 
 cloudinary.config({ 
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dt5xftbzd', 
-  api_key: process.env.CLOUDINARY_API_KEY || '994333695352177', 
-  api_secret: process.env.CLOUDINARY_API_SECRET || 'TmEZopqaPB2aOylB_xV_oPvO4tM'// Store this in your .env file
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME ,
+  api_key: process.env.CLOUDINARY_API_KEY ,
+  api_secret: process.env.CLOUDINARY_API_SECRET  
 });
 
 // Set up Multer storage (temporary folder)

@@ -31,25 +31,65 @@ exports.createProduct= async (req, res) => {
         await product.save();
         res.status(201).json({ message: 'Product created successfully', product });
     } catch (error) {
-        console.log(error)
         res.status(500).json({ message: error.message });
     }
 }
 exports.getProducts = async (req, res) => {
     try {
         const { page, limit, skip } = paginate(req)
-        const products = await Product.find({}).limit(limit).skip(skip).sort({ createdAt: -1 })// Sort by newest
+        const products = await Product.find( { stock:{ $gt: 0 } }).limit(limit).skip(skip).sort({ createdAt: -1 })// Sort by newest
         .populate("category", "name")
         .populate("brand", "name")
             .exec();
-        if(products.length === 0){
-            return res.status(404).json({ message: "No products found" });
-        }
         res.status(200).json({ page, count: products.length, data: products, success: true });
     } catch (error) {
         res.status(500).json({ error: "error fetching product", details: error });
     }
 }
+
+exports.getflashSaleProducts = async (req, res) => { 
+    try {
+        const { page, limit, skip } = paginate(req)
+        const flashSales = await Product.find({ stock: { $gt: 0 }, discountPercentage: { $gt: 40 } }).limit(limit).skip(skip).sort({ createdAt: -1 })// Sort by newest
+        .populate("category", "name")
+        .populate("brand", "name")
+            .exec();
+        res.status(200).json({ page, limit, count: flashSales.length, data: flashSales, success: true });
+        
+    }catch(error){
+        res.status(500).json({ error: "error fetching product", details: error });
+    }
+}
+// get out of stock product
+exports.getOutOfStockProducts = async (req, res) => {
+  try {
+    const { page, limit, skip } = paginate(req); // Use pagination utility
+
+    // Find products with stock equal to 0
+    const outOfStockProducts = await Product.find({ stock: { $lte: 0 } })
+      .limit(limit)
+      .skip(skip)
+      .sort({ createdAt: -1 }) // Sort by newest
+      .populate("category", "name")
+      .populate("brand", "name")
+      .exec();
+
+    if (outOfStockProducts.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No out-of-stock products found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Out-of-stock products fetched successfully",
+      count: outOfStockProducts.length,
+      data: outOfStockProducts,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error", error });
+  }
+};
 exports.getProductsById = async (req, res) => {
     try {
         const id = req.params.id;
@@ -67,7 +107,6 @@ exports.getProductsById = async (req, res) => {
             data: product
         })
     } catch (error) {
-        console.log(error)
         res.status(500).json({ error: "server error" })
     }
 }
@@ -90,13 +129,11 @@ exports.updateProductById = async (req, res) => {
         })
 
     } catch (error) {
-        console.log(error)
         res.status(500).json({ error: "server error" })
     }
 
 }
 exports.deleteProduct = async (req, res) => {
-    console.log("🛑 DELETE Request received for ID:", req.params.id);
 
     try {
         const id = req.params.id;
@@ -108,15 +145,12 @@ exports.deleteProduct = async (req, res) => {
         if (!removeProduct) {
             return res.status(404).json({ message: "product not found" });
         }
-
-        console.log("✅ product Deleted Successfully:", removeProduct);
         res.status(200).json({
             successful: true,
             message: "product deleted successfully",
             redirect: "/ecommerce",
         });
     } catch (error) {
-        console.log("❌ Server Error:", error);
         res.status(500).json({ message: "Server error" });
     }
 }
