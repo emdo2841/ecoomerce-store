@@ -25,7 +25,7 @@ authenticate.get(
   authorizeRole("admin"), authController.getUsers
 )
 
-authenticate.get("/me", isAuthenticated, authController.getLoggedInUser)
+authenticate.get("/mine", isAuthenticated, authController.getLoggedInUser)
 
 authenticate.post("/login", passport.authenticate("local"), authController.login)
 // console.log(typeof isAuthenticated, typeof authorizeRole);
