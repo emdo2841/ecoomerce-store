@@ -58,6 +58,7 @@ app.use((req, res, next) => {
 });
 
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 app.use(session({
     secret: process.env.SESSION_SECRET,
