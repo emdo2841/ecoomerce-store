@@ -41,7 +41,10 @@ exports.getProducts = async (req, res) => {
         .populate("category", "name")
         .populate("brand", "name")
             .exec();
-        res.status(200).json({ page, count: products.length, data: products, success: true });
+        const totalProducts = await Product.countDocuments({
+          stock: { $gt: 0 },
+        });
+        res.status(200).json({ page, count: products.length, total: totalProducts, data: products, success: true });
     } catch (error) {
         res.status(500).json({ error: "error fetching product", details: error });
     }

@@ -82,6 +82,12 @@ exports.getUsers = async (req, res) => {
     }
 };
 exports.getLoggedInUser = (req, res) => {
+    if (req.session) {
+      console.log("✅ Session exists:", req.session);
+    } else {
+      console.log("❌ No session found");
+    }
+
   if (!req.user) {
     return res
       .status(401)
@@ -89,12 +95,12 @@ exports.getLoggedInUser = (req, res) => {
   }
 
   // Exclude sensitive fields like password
-  const { _id, firstname, lastname, email, role, address, phone, image } =
-    req.user;
+  const { _id, firstname, lastname, email, role, address, phone, image } = req.user;
 
   res.status(200).json({
     success: true,
     user: { _id, firstname, lastname, email, role, address, phone, image },
+   
   });
 };
 
