@@ -81,6 +81,22 @@ exports.getUsers = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error" });
     }
 };
+exports.getLoggedInUser = (req, res) => {
+  if (!req.user) {
+    return res
+      .status(401)
+      .json({ success: false, message: "Unauthorized. Please log in." });
+  }
+
+  // Exclude sensitive fields like password
+  const { _id, firstname, lastname, email, role, address, phone, image } =
+    req.user;
+
+  res.status(200).json({
+    success: true,
+    user: { _id, firstname, lastname, email, role, address, phone, image },
+  });
+};
 
 exports.login = (req, res) => {
     // console.log("✅ User Logged In:", req.user);
