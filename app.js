@@ -13,6 +13,7 @@ const session = require ('express-session');
 const User = require ('./models/user');
 const isAuthenticated = require('./middleware/isAuthenticated');
 const cors = require('cors');
+const cookieParser = require("cookie-parser");
 
 const productRoute = require('./Route/product');
 const brandRoute = require('./Route/brand');
