@@ -138,7 +138,7 @@ exports.createTransaction = async (req, res) => {
           email,
           amount: totalPrice * 100, // Convert to kobo
           reference,
-          callback_url: `${process.env.PAYSTACK_CALLBACK_URL}/verify-payment/${refernce}`,
+          callback_url: `${process.env.PAYSTACK_CALLBACK_URL}/verify-payment/${reference}`,
         },
         {
           headers: {
