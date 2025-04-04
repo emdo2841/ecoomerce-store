@@ -138,7 +138,7 @@ exports.createTransaction = async (req, res) => {
           email,
           amount: totalPrice * 100, // Convert to kobo
           reference,
-          callback_url: `${process.env.PAYSTACK_CALLBACK_URL}/verify-payment/${refernce}`,
+          callback_url: `${process.env.PAYSTACK_CALLBACK_URL}/verify-payment/${reference}`,
         },
         {
           headers: {
@@ -148,6 +148,21 @@ exports.createTransaction = async (req, res) => {
         }
       );
 
+      // Send email to the user with transaction details
+      const transactionDetails = {
+        transactionId: reference,
+        amount: totalPrice,
+        date: new Date().toLocaleString(),
+      };
+
+      await sendEmail(
+        email,
+        user.firstname || "Customer", // Use user's firstname or a fallback
+        null,
+        false,
+        true, // Not a payment success email
+        transactionDetails
+      );
       // Respond to client
       res.status(201).json({
         message: "Transaction created successfully, redirect to Paystack",
@@ -156,6 +171,7 @@ exports.createTransaction = async (req, res) => {
       });
     });
   } catch (error) {
+    console.log(error)
     return res
       .status(500)
       .json({ error: error.message || "Internal server error", error });

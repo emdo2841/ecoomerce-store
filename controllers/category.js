@@ -20,7 +20,13 @@ exports.getAllCategory = async (req, res) => {
     const { page, limit } = paginate(req)
     try {
         const categories = await Category.find({}).limit(limit).skip(page).sort({ createdAt: -1 })// Sort by newest
-        res.status(200).json(categories)
+        res
+          .status(200)
+          .json({
+            success: true,
+            message: "Brands fetched successfully",
+            data: categories,
+          });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

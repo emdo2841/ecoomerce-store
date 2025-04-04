@@ -46,10 +46,13 @@ if (process.env.NODE_ENV === 'production') {
 app.use(express.json());
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3001"], // Allow both ports 3000 and 3001
-    credentials: true, // Allows cookies/session to be sent
+    origin: ["http://localhost:3000"], // Make sure this matches your frontend
+    credentials: true, // ✅ Allow sending cookies
   })
 );
+
+app.set("trust proxy", 1); // Important for session cookies in production
+
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "http://localhost:3000");
     res.header("Access-Control-Allow-Credentials", "true");

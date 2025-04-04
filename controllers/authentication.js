@@ -1,4 +1,4 @@
-
+const passport = require("passport");
 const User = require("../models/user");
 const { uploadToCloudinary } = require('../utilities/cloudinary')
 require("dotenv").config();
@@ -82,11 +82,13 @@ exports.getUsers = async (req, res) => {
     }
 };
 exports.getLoggedInUser = (req, res) => {
-    if (req.session) {
-      console.log("✅ Session exists:", req.session);
-    } else {
-      console.log("❌ No session found");
-    }
+    // if (req.session) {
+    //   console.log("✅ Session exists:", req.session);
+    // } else {
+    //   console.log("❌ No session found");
+    // }
+    // console.log("🔍 Session:", req.session);
+    // console.log("🔍 User:", req.user); 
 
   if (!req.user) {
     return res
@@ -104,9 +106,34 @@ exports.getLoggedInUser = (req, res) => {
   });
 };
 
-exports.login = (req, res) => {
-    // console.log("✅ User Logged In:", req.user);
-    res.json({ success: true, user: req.user });                
+exports.login = (req, res, next) => {
+  const { rememberMe } = req.body;
+
+  passport.authenticate('local', (err, user, info) => {
+    if (err || !user) {
+      return res.status(401).json({ success: false, message: info?.message || 'Invalid credentials' });
+    }
+
+    req.logIn(user, (err) => {
+      if (err) return res.status(500).json({ success: false, message: 'Login error' });
+
+      // 👇 Set session duration based on rememberMe
+      if (rememberMe) {
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+      } else {
+        req.session.cookie.expires = false; // Session cookie (expires when browser closes)
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Login successful",
+        user: {
+          email: user.email,
+          name: `${user.firstname} ${user.lastname}`
+        }
+      });
+    });
+  })(req, res, next);
 };
 // return admins only
 exports.getAdmins = async (req, res) => {
@@ -201,14 +228,20 @@ exports.updateRole = async (req, res) => {
 
 
 exports.logout = (req, res) => {
-    req.logout((err) => {
-        if (err) {
-            return res.status(500).json({ success: false, message: "Logout failed" });
-        }
-        res.status(200).json({ success: true, message: "Logged out successfully!", redirect: "/" });
-    });
-}
+  req.logout(function(err) {
+    if (err) {
+      return res.status(500).json({ success: false, message: "Logout failed" });
+    }
 
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: "Failed to destroy session" });
+      }
+      res.clearCookie("connect.sid"); // Important: remove session cookie
+      return res.status(200).json({ success: true, message: "Logged out successfully" });
+    });
+  });
+};
 exports.deleteUser = async (req, res) => {
     try {
         const user = await User.findByIdAndDelete(req.params.id);
@@ -240,7 +273,7 @@ exports.forgotPassword = async (req, res) => {
         await user.save({ validateModifiedOnly: true });
 
         // Reset password email
-        const resetLink = `http://localhost:7000/api/auth/reset-password/${token}`;
+        const resetLink = `https://ecoomerce-store-t40x.onrender.com/api/auth/reset-password/${token}`;
 
         await sendEmail(user.email, user.firstname, resetLink);
 
