@@ -13,7 +13,9 @@
   const User = require ('./models/user');
   const isAuthenticated = require('./middleware/isAuthenticated');
   const cors = require('cors');
-  const cookieParser = require("cookie-parser");
+const cookieParser = require("cookie-parser");
+  const helmet = require('helmet');
+app.use(helmet());
 
   const productRoute = require('./Route/product');
   const brandRoute = require('./Route/brand');
@@ -21,6 +23,7 @@
   const transactionRoute = require('./Route/transaction');
 
 
+  app.use(helmet());
   // Create a write stream (in append mode)
   const logStream = fs.createWriteStream('./access.log', { flags: 'a' });
 
