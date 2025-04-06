@@ -8,45 +8,74 @@ const paginate = require('../utilities/paginate')
 
 exports.creatUser = async (req, res) => {
     try {
+      // const imageUrls = await Promise.all(req.files.map(file => uploadToCloudinary(file.path)));
+      const imageUrl = req.file
+        ? await uploadToCloudinary(req.file.path)
+        : null;
+      const { firstname, lastname, email, dob, password, address, phone } =
+        req.body;
 
-        // const imageUrls = await Promise.all(req.files.map(file => uploadToCloudinary(file.path)));
-        const imageUrl = req.file ? await uploadToCloudinary(req.file.path) : null;
-        const { firstname, lastname, email, dob, password, address, phone } = req.body;
+      if (
+        !firstname ||
+        !lastname ||
+        !email ||
+        !password ||
+        !address ||
+        !phone
+      ) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Please fill all fields" });
+      }
+      // Email regex for validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-        if (!firstname || !lastname || !email || !password || !address || !phone) {
-            return res.status(400).json({ success: false, message: "Please fill all fields" });
-        }
-        // Check if the email already exists
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res
-                .status(409)
-                .json({ success: false, message: "Email already exists" });
-        }
-
-        // Create a new User
-        const newUser = new User({
-            email,
-            firstname,
-            lastname,
-            dob: dob || null, // Optional DOB
-            role: "user",
-            image: imageUrl,
-            address,
-            phone
-
+      // Validate email format
+      if (!emailRegex.test(email)) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid email format" });
+      }
+      
+      const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/; // At least 8 characters, including letters and numbers
+      // Validate password format
+      if (!passwordRegex.test(password)) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Password must be at least 8 characters long and include both letters and numbers",
         });
+      }
+      // Check if the email already exists
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res
+          .status(409)
+          .json({ success: false, message: "Email already exists" });
+      }
 
-        // Register user with hashed password
-        await User.register(newUser, password);
+      // Create a new User
+      const newUser = new User({
+        email,
+        firstname,
+        lastname,
+        dob: dob || null, // Optional DOB
+        role: "user",
+        image: imageUrl,
+        address,
+        phone,
+      });
 
-        res.status(201).json({
-            success: true,
-            message: "User created successfully and file uploaded successfully!",
-            redirect: "/auth/login",
-            data: newUser,
-        });
-        sendEmail(email, firstname);
+      // Register user with hashed password
+      await User.register(newUser, password);
+
+      res.status(201).json({
+        success: true,
+        message: "User created successfully and file uploaded successfully!",
+        redirect: "/auth/login",
+        data: newUser,
+      });
+      sendEmail(email, firstname);
     } catch (err) { 
         
         res.status(500).send({ success: false, message: "Server error", err });
