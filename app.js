@@ -54,7 +54,7 @@ app.use(helmet());
     })
   );
 
-  app.set("trust proxy", 1); // Important for session cookies in production
+  
 
   app.use((req, res, next) => {
       res.header("Access-Control-Allow-Origin", "http://localhost:3000");
@@ -74,7 +74,7 @@ app.use(helmet());
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
-        secure: false, // Set to true if using HTTPS
+        secure: true, // Set to true if using HTTPS
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
         // Ensures cookies are sent over HTTPS in production
