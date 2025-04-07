@@ -75,7 +75,7 @@ app.use(helmet());
       cookie: {
         httpOnly: true,
         secure: true, // Set to true if using HTTPS
-        sameSite: "lax",
+        sameSite: "none",
         secure: process.env.NODE_ENV === "production",
         // Ensures cookies are sent over HTTPS in production
         maxAge: 24 * 60 * 60 * 1000, // 1 day (adjust as needed)
