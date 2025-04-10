@@ -72,8 +72,7 @@ productSchema.pre("save", function (next) {
   // Ensure discountPercentage is correctly calculated and within bounds
   if (this.price > 0 && this.discountedPrice >= 0) {
     this.discountPercentage =
-      ((this.price - this.discountedPrice) / this.price) * 100;
-    this.discountPercentage = 100 - this.discountPercentage
+      (this.moneySaved / this.price) * 100;
 
     // Ensure discount percentage does not exceed 100%
     if (this.discountPercentage > 100) {

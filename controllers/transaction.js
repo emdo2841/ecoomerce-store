@@ -7,6 +7,7 @@ const axios = require("axios");
 const crypto = require("crypto");
 const paginate = require("../utilities/paginate");
 const sendEmail = require("../utilities/sendEmail");
+const CustomError = require('../utilities/customError');
 
 
 
@@ -88,8 +89,13 @@ exports.createTransaction = async (req, res) => {
 
           // Check stock availability
           if (productToBuy.stock < quantity) {
-            throw new Error(`Insufficient stock for ${productToBuy.name}`);
+            throw new CustomError(
+  `Sorry, "${productToBuy.name}" is out of stock. Only ${productToBuy.stock} unit(s) available.`,
+  400
+);
+
           }
+
 
           // Calculate price and savings
           const productTotalPrice = productToBuy.discountedPrice * quantity;
@@ -171,11 +177,12 @@ exports.createTransaction = async (req, res) => {
       });
     });
   } catch (error) {
-    console.log(error)
-    return res
-      .status(500)
-      .json({ error: error.message || "Internal server error", error });
-  } finally {
+  console.error("Transaction Error:", error.message);
+  const statusCode = error.statusCode || 500;
+  return res.status(statusCode).json({
+    error: error.message || "Something went wrong",
+  });
+} finally {
     session.endSession(); // Ensure the session is closed properly
   }
 };
@@ -242,7 +249,7 @@ exports.verifyPayment = async (req, res) => {
       return res.status(200).json({
         message: "Payment verified successfully",
         transaction,
-        redirect: "/payment-success",
+        redirect: `${process.env.CLIENT_URL}/verify-payment/${reference}`,
       });
     } else {
       return res.status(400).json({ error: "Payment verification failed" });

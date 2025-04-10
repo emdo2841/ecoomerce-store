@@ -1,18 +1,15 @@
 const mongoose = require("mongoose");
-const passportLocalMongoose = require("passport-local-mongoose")
+const bcrypt = require("bcryptjs");
 // const bcrypt = require("bcrypt");
 const Schema = mongoose.Schema;
 
 const userSchema = new Schema(
   {
-    firstname: {
+    fullName: {
       type: String,
       required: true,
     },
-    lastname: {
-      type: String,
-      required: true,
-    },
+   
     email: {
       type: String,
       required: true,
@@ -30,30 +27,33 @@ const userSchema = new Schema(
     dob: {
       type: Date,
     },
-      
+    password: { type: String, required: true },
+
     role: {
       type: String,
       enum: ["admin", "staff", "user"],
       default: "user",
     },
-    image:{type:String},
+    image: { type: String },
     resetPasswordToken: { type: String }, // Stores reset token
     resetPasswordExpires: { type: Date }, // Expiry time for reset token
   },
   { timestamps: true }
 );
 // by default without typing line 30 it takes username but this code uses line 30 by making email necessary rather than username
-userSchema.plugin(passportLocalMongoose,{
-    usernameField:"email",
-    errorMessage:{
-        missingPasswordError:"No password input",
-        AttemptTooSoonError:"Account is currently locked.Try again later",
-        TooManyAttemptError:"Account locked due to too many failed login attempgt",
-        IncorrectPasswordError:"Password or username sre incorrect",
-        IncorrectUsernameError:"password or username is incorrect",
-        MissingUsernameError:"No Username was given",
-        UserExistsError:"A user with the given username is already register",
-    },
-})
+
+// Hash password before saving
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+
+// Compare password
+userSchema.methods.comparePassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
+
 const User = mongoose.model("User",userSchema);
 module.exports= User

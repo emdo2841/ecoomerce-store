@@ -1,8 +1,7 @@
 
 express = require('express');
 const productRoute = express.Router();
-const checkRole = require('../middleware/checkRole')
-const isAuthenticated = require('../middleware/isAuthenticated')
+const { protect, authorize } = require("../middleware/auth");
 const { upload } = require("../utilities/cloudinary")
 
 
@@ -14,8 +13,8 @@ const productController = require("../controllers/product")
 // **POST Route to Upload Product with Images**
 productRoute.post(
   "/",
-  isAuthenticated,
-  checkRole(["admin"]),
+  protect,
+  authorize("admin"),
   upload.array("images", 5),
   productController.createProduct
 );
@@ -25,18 +24,18 @@ productRoute.get("/", productController.getProducts);
 productRoute.get("/flash-sale", productController.getflashSaleProducts)
 productRoute.get(
   "/out-of-stock",
-  isAuthenticated,
-  checkRole("admin"), // Only admins can access this route
+  protect,
+  authorize("admin"), // Only admins can access this route
   productController.getOutOfStockProducts
 );
 
-productRoute.put('/:id', isAuthenticated, productController.updateProductById);
+productRoute.put('/:id', protect, authorize("admin", "staff"), productController.updateProductById);
 productRoute.get('/:id',productController.getProductsById)
 
 productRoute.delete(
     "/:id",
-    isAuthenticated,
-    checkRole(["admin"]), productController.deleteProduct
+    protect,
+    authorize("admin"), productController.deleteProduct
     
 );
 module.exports = productRoute

@@ -1,8 +1,6 @@
 const express = require("express");
 const authenticate = express.Router();
-const passport = require("passport");
-const isAuthenticated = require('../middleware/isAuthenticated')
-const authorizeRole = require('../middleware/authorizeRole');
+const { protect, authorize } = require("../middleware/auth");
 require("dotenv").config();
 // 
 const authController = require("../controllers/authentication")
@@ -12,34 +10,34 @@ const { upload } = require('../utilities/cloudinary')
 
 // Register Route
 authenticate.post("/register", upload.single("image"),authController.creatUser)
-
+authenticate.post("/refresh-token", authController.refreshToken);
 authenticate.get(
   "/user/:id",
-  isAuthenticated,
-  authorizeRole("admin"), authController.getUserById
+  protect,
+  authorize("admin"), authController.getUserById
 )
 
 authenticate.get(
   "/users",
-  isAuthenticated,
-  authorizeRole("admin"), authController.getUsers
+  protect,
+  authorize("admin"), authController.getUsers
 )
 
-authenticate.get("/profile", isAuthenticated, authController.getLoggedInUser)
+authenticate.get("/profile", protect, authController.getLoggedInUser)
 
-authenticate.post("/login", passport.authenticate("local"), authController.login)
-// console.log(typeof isAuthenticated, typeof authorizeRole);
+authenticate.post("/login", authController.login)
+// console.log(typeof protect, typeof authorize);
 authenticate.put("/update-role/:id",
-  isAuthenticated,
-  authorizeRole("admin"),authController.updateRole
+  protect,
+  authorize("admin"),authController.updateRole
 )
 
 authenticate.get("/logout", authController.logout);
 
 authenticate.delete(
   "/user/:id",
-  isAuthenticated,
-  authorizeRole("admin"), authController.deleteUser
+  protect,
+  authorize("admin"), authController.deleteUser
 
 );
 
@@ -49,24 +47,24 @@ authenticate.delete(
 authenticate.post("/forgot-password", authController.forgotPassword);
 // 📌 Reset Password Route
 authenticate.post("/reset-password/:token", authController.resetPassword);
-authenticate.put("/update-password", isAuthenticated, authController.updatePassword);
-authenticate.get("/staff", isAuthenticated, authorizeRole("admin"), authController.getStaff);
+authenticate.put("/update-password", protect, authController.updatePassword);
+authenticate.get("/staff", protect, authorize("admin"), authController.getStaff);
 authenticate.get(
   "/admin",
-  isAuthenticated,
-  authorizeRole("admin"),
+  protect,
+  authorize("admin"),
   authController.getAdmins
 );
 authenticate.get(
   "/user-role",
-  isAuthenticated,
-  authorizeRole("admin"),
+  protect,
+  authorize("admin"),
   authController.getOnlyUsers
 );
 authenticate.get(
   "/admin-staff",
-  isAuthenticated,
-  authorizeRole("admin"),
+  protect,
+  authorize("admin"),
   authController.getAdminsOrStaffS
 );
 

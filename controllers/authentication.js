@@ -1,10 +1,14 @@
-const passport = require("passport");
+
 const User = require("../models/user");
 const { uploadToCloudinary } = require('../utilities/cloudinary')
 require("dotenv").config();
 const sendEmail = require("../utilities/sendEmail");
 const crypto = require("crypto");
 const paginate = require('../utilities/paginate')
+const jwt = require("jsonwebtoken");
+const { generateToken, generateRefreshToken } = require("../utilities/jwt");
+const TokenStore = require("../models/tokenStore"); // A model to store refresh tokens (explained below)
+
 
 exports.creatUser = async (req, res) => {
     try {
@@ -12,12 +16,11 @@ exports.creatUser = async (req, res) => {
       const imageUrl = req.file
         ? await uploadToCloudinary(req.file.path)
         : null;
-      const { firstname, lastname, email, dob, password, address, phone } =
+      const { fullName, email, password, address, phone } =
         req.body;
 
       if (
-        !firstname ||
-        !lastname ||
+        !fullName ||
         !email ||
         !password ||
         !address ||
@@ -47,37 +50,40 @@ exports.creatUser = async (req, res) => {
         });
       }
       // Check if the email already exists
-      const existingUser = await User.findOne({ email });
+      const existingUser = await User.findOne({
+        $or: [{ email }, { phone }],
+      });
+
       if (existingUser) {
         return res
           .status(409)
-          .json({ success: false, message: "Email already exists" });
+          .json({
+            success: false,
+            message: "Email or phone number already exists",
+          });
       }
 
       // Create a new User
-      const newUser = new User({
+      const newUser =  await User.create({
         email,
-        firstname,
-        lastname,
-        dob: dob || null, // Optional DOB
+        fullName,
         role: "user",
         image: imageUrl,
         address,
         phone,
+        password
       });
-
-      // Register user with hashed password
-      await User.register(newUser, password);
-
+      const token = generateToken(newUser); // Generate JWT token
+      
       res.status(201).json({
         success: true,
         message: "User created successfully and file uploaded successfully!",
         redirect: "/auth/login",
-        data: newUser,
+        data: { id: newUser._id, fullName, phone, address, token,email, role: newUser.role },
       });
-      sendEmail(email, firstname);
+      sendEmail(email, fullName); // Send welcome email
     } catch (err) { 
-        
+        console.log(err)
         res.status(500).send({ success: false, message: "Server error", err });
     }
 };
@@ -135,82 +141,91 @@ exports.getLoggedInUser = (req, res) => {
   });
 };
 
-exports.login = (req, res, next) => {
-  const { rememberMe } = req.body;
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-  passport.authenticate('local', (err, user, info) => {
-    if (err || !user) {
-      return res.status(401).json({ success: false, message: info?.message || 'Invalid credentials' });
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    req.logIn(user, (err) => {
-      if (err) return res.status(500).json({ success: false, message: 'Login error' });
+    // Check password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
 
-      // 👇 Set session duration based on rememberMe
-      if (rememberMe) {
-        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-      } else {
-        req.session.cookie.expires = false; // Session cookie (expires when browser closes)
-      }
+    // Generate tokens
+    const accessToken = generateToken(user);
+    const refreshToken = generateRefreshToken(user);
 
-      return res.status(200).json({
-        success: true,
-        message: "Login successful",
-        user: {
-          email: user.email,
-          name: `${user.firstname} ${user.lastname}`
-        }
-      });
+    // Save refresh token in the database
+    await TokenStore.create({ token: refreshToken, user: user._id });
+
+    res.status(200).json({
+      message: "Login successful",
+      accessToken,
+      refreshToken,
+      user: {
+        id: user._id,
+        name: user.fullName,
+        phone: user.phone,
+        email: user.email,
+        role: user.role,
+      },
     });
-  })(req, res, next);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
 // return admins only
 exports.getAdmins = async (req, res) => {
   try {
-    const { limit, page } = paginate(req);
+    const { limit, skip } = paginate(req);
 
-    // Find users with the role "admin"
     const users = await User.find({ role: "admin" })
       .limit(limit)
-      .skip(page)
-      .sort({ createdAt: -1 }) // Sort by newest
-      .select("-password"); // Exclude passwords for security
+      .skip(skip)
+      .sort({ createdAt: -1 })
+      .select("-password");
+
     res.json({ success: true, users });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
+
 // return staff only
 exports.getStaff = async (req, res) => {
   try {
-    const { limit, page } = paginate(req);
+    const { limit, skip } = paginate(req);
 
     // Find users with the role "admin"
-    const users = await User.find({ role: "staff" })
+    const staffs = await User.find({ role: "staff" })
       .limit(limit)
-      .skip(page)
+      .skip(skip)
       .sort({ createdAt: -1 }) // Sort by newest
       .select("-password"); // Exclude passwords for security
 
-    res.json({ success: true, users });
+    res.json({ success: true, staffs });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
  
 // return users only
-
 exports.getOnlyUsers = async (req, res) => {
   try {
-    const { limit, page } = paginate(req);
+    const { limit, skip } = paginate(req);
 
-    // Find users with the role "admin"
     const users = await User.find({ role: "user" })
       .limit(limit)
-      .skip(page)
-      .sort({ createdAt: -1 }) // Sort by newest
-      .select("-password"); // Exclude passwords for security
+      .skip(skip)
+      .sort({ createdAt: -1 })
+      .select("-password");
 
     res.json({ success: true, users });
   } catch (err) {
@@ -256,20 +271,68 @@ exports.updateRole = async (req, res) => {
 };
 
 
-exports.logout = (req, res) => {
-  req.logout(function(err) {
-    if (err) {
-      return res.status(500).json({ success: false, message: "Logout failed" });
+
+exports.logout = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Refresh token is required" });
     }
 
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ success: false, message: "Failed to destroy session" });
-      }
-      res.clearCookie("connect.sid"); // Important: remove session cookie
-      return res.status(200).json({ success: true, message: "Logged out successfully" });
+    // ✅ Use JWT_REFRESH_SECRET to verify the refresh token
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+    // Remove the refresh token from the database or in-memory store
+    await TokenStore.findOneAndDelete({ token: refreshToken });
+
+    res.status(200).json({ success: true, message: "Logged out successfully" });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+        message: "Logout failed",
+      error: error.message,
     });
-  });
+  }
+};
+
+exports.refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ message: "Refresh token is required" });
+    }
+
+    // Verify the refresh token
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+    // Check if the refresh token exists in the database
+    const storedToken = await TokenStore.findOne({ token: refreshToken });
+    if (!storedToken) {
+      return res.status(403).json({ message: "Invalid refresh token" });
+    }
+
+    // Generate a new access token
+    const user = await User.findById(decoded.id);
+    const newAccessToken = generateToken(user);
+
+    // Generate a new refresh token
+    const newRefreshToken = generateRefreshToken(user);
+
+    // Save the new refresh token and delete the old one
+    await TokenStore.create({ token: newRefreshToken, user: user._id });
+    await TokenStore.findOneAndDelete({ token: refreshToken });
+
+    res.status(200).json({
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    });
+  } catch (error) {
+    res.status(403).json({ message: "Invalid or expired refresh token" });
+  }
 };
 exports.deleteUser = async (req, res) => {
     try {
@@ -294,9 +357,12 @@ exports.forgotPassword = async (req, res) => {
 
         // Generate reset token
         const token = crypto.randomBytes(20).toString("hex");
+        const hashedToken = crypto
+          .createHash("sha256")
+          .update(token)
+          .digest("hex");
 
-        // Set token and expiration
-        user.resetPasswordToken = token;
+        user.resetPasswordToken = hashedToken;
         user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
 
         await user.save({ validateModifiedOnly: true });
@@ -306,20 +372,29 @@ exports.forgotPassword = async (req, res) => {
 
         await sendEmail(user.email, user.firstname, resetLink);
 
-        res.json({ message: "Password reset email sent!" });
+        res.json({
+          message:
+            "If an account with that email exists, a reset link has been sent.!",
+        });
 
     } catch (error) {
-        res.status(500).json({ error: "Internal server error" });
+       console.error("Forgot Password Error:", error);
+       res
+         .status(500)
+         .json({ error: "Something went wrong. Please try again later." });
     }
 }
 exports.resetPassword = async (req, res) => {
     try {
         const { token } = req.params;
         const { password } = req.body;
-
+        const hashedToken = crypto
+          .createHash("sha256")
+          .update(req.params.token)
+          .digest("hex");
         // 1️⃣ Find user with the given reset token
-        const user = await User.findOne({
-            resetPasswordToken: token,
+      const user = await User.findOne({
+            resetPasswordToken: hashedToken ,
             resetPasswordExpires: { $gt: Date.now() }, // Check if token is still valid
         });
 

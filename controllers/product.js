@@ -5,35 +5,75 @@ const mongoose = require("mongoose")
 const Product = require("../models/product")
 const paginate = require('../utilities/paginate')
 
-exports.createProduct= async (req, res) => {
-    try {
-        const categoryId = req.body.category;
+exports.createProduct = async (req, res) => {
+  try {
+    const {
+      name,
+      description,
+      price,
+      stock,
+      category,
+      brand,
+      discountedPrice,
+    } = req.body;
 
-        // Validate category ID before using it
-        if (!categoryId || !mongoose.Types.ObjectId.isValid(categoryId)) {
-            return res.status(400).json({ error: "Invalid category ID. It must be a 24-character hex string." });
-        }
-        // Upload all images to Cloudinary and get URLs
-        const imageUrls = await Promise.all(req.files.map(file => uploadToCloudinary(file.path)));
+    // Collect validation errors
+    const errors = {};
 
-        // Create a new product
-        const product = new Product({
-            name: req.body.name,
-            description: req.body.description,
-            price: req.body.price,
-            stock: req.body.stock,
-            category: new mongoose.Types.ObjectId(categoryId),
-            brand: req.body.brand,
-            images: imageUrls, // Store Cloudinary URLs
-            discountedPrice: req.body.discountedPrice
-        });
-
-        await product.save();
-        res.status(201).json({ message: 'Product created successfully', product });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+    if (!name) errors.name = "Product name is required";
+    if (!description) errors.description = "Description is required";
+    if (!price || isNaN(price)) errors.price = "Valid price is required";
+    if (!stock || isNaN(stock)) errors.stock = "Valid stock count is required";
+    if (!category || !mongoose.Types.ObjectId.isValid(category)) {
+      errors.category =
+        "Invalid category ID. It must be a 24-character hex string.";
     }
-}
+    if (!brand || !mongoose.Types.ObjectId.isValid(brand)) {
+      errors.brand = "Invalid brand ID. It must be a 24-character hex string.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({ errors });
+    }
+
+    // Check for duplicate product name
+    const existingProduct = await Product.findOne({ name: name.trim() });
+    if (existingProduct) {
+      return res.status(409).json({
+        error: `A product with the name '${name}' already exists.`,
+      });
+    }
+
+    // Upload all images to Cloudinary and get URLs
+    const imageUrls = await Promise.all(
+      req.files.map((file) => uploadToCloudinary(file.path))
+    );
+
+    // Create a new product
+    const product = new Product({
+      name: name.trim(),
+      description,
+      price,
+      stock,
+      category: new mongoose.Types.ObjectId(category),
+      brand: new mongoose.Types.ObjectId(brand),
+      images: imageUrls,
+      discountedPrice,
+    });
+
+    await product.save();
+    res.status(201).json({ message: "Product created successfully", product });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        error: "Duplicate key error",
+        details: error.keyValue,
+      });
+    }
+    res.status(500).json({ message: "Server error", details: error.message });
+  }
+};
+
 exports.getProducts = async (req, res) => {
     try {
         const { page, limit, skip } = paginate(req)
