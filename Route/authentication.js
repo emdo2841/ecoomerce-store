@@ -32,7 +32,7 @@ authenticate.put("/update-role/:id",
   authorize("admin"),authController.updateRole
 )
 
-authenticate.get("/logout", authController.logout);
+authenticate.post("/logout", authController.logout);
 
 authenticate.delete(
   "/user/:id",
