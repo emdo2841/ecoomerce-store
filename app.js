@@ -46,12 +46,23 @@ app.use(helmet());
 
 
   app.use(express.json());
-  app.use(
-    cors({
-      origin: ["http://localhost:3000", "https://ej-mart-place.vercel.app/"], // Make sure this matches your frontend
-      credentials: true, // ✅ Allow sending cookies
-    })
-  );
+  const allowedOrigins = [
+  "http://localhost:3000",
+  "https://ej-mart-place.vercel.app"
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
 connectToMongo()
   .then(() => {
