@@ -74,14 +74,14 @@ exports.getProductByBrandId = async (req, res) => {
         if (!mongoose.Types.ObjectId.isValid(brand)) {
             return res.status(400).json({ error: "Invalid brand ID" });
         }
-        const { limit, page } = paginate(req)
+        const { limit, skip } = paginate(req)
         // Convert the brand to an ObjectId
         const brandId = new mongoose.Types.ObjectId(brand);
 
         // Query the database for products with the specified brand
         const products = await Product.find({ brand: brandId })
           .limit(limit)
-          .skip(page)
+          .skip(skip)
           .sort({ createdAt: -1 }) // Sort by newest
           .populate("category", "name")
           .populate("brand", "name")
