@@ -29,7 +29,7 @@ brand.delete(
   brandController.deleteBrand
 );
 
-brand.get("/brand/:brand", brandController.getProductByBrandId)
+brand.get("/product/:brand", brandController.getProductByBrandId)
 // Get all products by brand
 
 module.exports = brand
