@@ -17,9 +17,9 @@ exports.createCategory = async (req, res) => {
     }
 }
 exports.getAllCategory = async (req, res) => {
-    const { page, limit } = paginate(req)
+    const { limit, skip } = paginate(req)
     try {
-        const categories = await Category.find({}).limit(limit).skip(page).sort({ createdAt: -1 })// Sort by newest
+        const categories = await Category.find({}).limit(limit).skip(skip).sort({ createdAt: -1 })// Sort by newest
         res
           .status(200)
           .json({
