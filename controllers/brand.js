@@ -14,8 +14,8 @@ exports.createBrand = async (req, res) => {
 };
 exports.getAllBrand = async (req, res) => {
     try {
-        const { page, limit } = paginate(req)
-        const brands = await Brand.find().limit(limit).skip(page).sort({ createdAt: -1 })// Sort by newest;
+        const { limit, skip } = paginate(req)
+        const brands = await Brand.find().limit(limit).skip(skip).sort({ createdAt: -1 })// Sort by newest;
         res.status(200).json({
             success: true,
             message: "Brands fetched successfully",
