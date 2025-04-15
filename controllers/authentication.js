@@ -106,9 +106,9 @@ exports.getUserById = async (req, res) => {
 
 exports.getUsers = async (req, res) => {
     try {
-        const {limit, page} = paginate(req)
+        const {limit, skip} = paginate(req)
         const users = await User.find({ _id: { $ne: req.user._id } })
-        .limit(limit).skip(page).sort({ createdAt: -1 })// Sort by newest// 🔥 Exclude logged-in user
+        .limit(limit).skip(skip ).sort({ createdAt: -1 })// Sort by newest// 🔥 Exclude logged-in user
             .select("-password"); // Exclude passwords for security
 
         res.json({ success: true, users });
@@ -117,13 +117,7 @@ exports.getUsers = async (req, res) => {
     }
 };
 exports.getLoggedInUser = (req, res) => {
-    // if (req.session) {
-    //   console.log("✅ Session exists:", req.session);
-    // } else {
-    //   console.log("❌ No session found");
-    // }
-    // console.log("🔍 Session:", req.session);
-    // console.log("🔍 User:", req.user); 
+    
 
   if (!req.user) {
     return res
@@ -132,11 +126,11 @@ exports.getLoggedInUser = (req, res) => {
   }
 
   // Exclude sensitive fields like password
-  const { _id, firstname, lastname, email, role, address, phone, image } = req.user;
+  const { _id, fullName, email, role, address, phone, image } = req.user;
 
   res.status(200).json({
     success: true,
-    user: { _id, firstname, lastname, email, role, address, phone, image },
+    user: { _id, fullName, email, role, address, phone, image },
    
   });
 };
@@ -174,6 +168,7 @@ exports.login = async (req, res) => {
         phone: user.phone,
         email: user.email,
         role: user.role,
+        image: user.image
       },
     });
   } catch (error) {
@@ -341,6 +336,24 @@ exports.deleteUser = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
         res.status(200).json({ message: "User deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+}
+
+exports.updateUser = async (req, res) => {
+  try {
+    const imageUrl = req.file ? await uploadToCloudinary(req.file.path) : null;
+    const { fullName, address, phone } = req.body
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { fullName, address, phone, imageUrl },
+      { new: true }
+    );
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        res.status(200).json({ message: "User updated successfully" });
     } catch (error) {
         res.status(500).json({ message: "Server error" });
     }

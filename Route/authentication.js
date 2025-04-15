@@ -67,6 +67,11 @@ authenticate.get(
   authorize("admin"),
   authController.getAdminsOrStaffS
 );
-
+authenticate.put(
+  "/update-profile",
+  upload.single("image"),
+  protect,
+  authController.updateUser
+);
 
 module.exports = authenticate;
