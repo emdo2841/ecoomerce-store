@@ -50,18 +50,26 @@ exports.creatUser = async (req, res) => {
         });
       }
       // Check if the email already exists
-      const existingUser = await User.findOne({
-        $or: [{ email }, { phone }],
-      });
+      const existingUser = await User.findOne({ email });
 
       if (existingUser) {
         return res
           .status(409)
           .json({
             success: false,
-            message: "Email or phone number already exists",
+            message: "Email already exists",
           });
       }
+
+      const existingPhone = await User.findOne({ phone });
+
+      if (existingPhone) {
+        return res.status(409).json({
+          success: false,
+          message: "phone Number already exists",
+        });
+      }
+
 
       // Create a new User
       const newUser =  await User.create({
