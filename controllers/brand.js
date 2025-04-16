@@ -14,14 +14,18 @@ exports.createBrand = async (req, res) => {
 };
 exports.getAllBrand = async (req, res) => {
     try {
-        const { limit, skip } = paginate(req)
+        const { page, limit, skip } = paginate(req)
         const brands = await Brand.find().limit(limit).skip(skip).sort({ createdAt: -1 })// Sort by newest;
+        const totalbrands = await Band.countDocuments({
+          stock: { $gt: 0 },
+        });
         res.status(200).json({
-            success: true,
-            message: "Brands fetched successfully",
-            data: brands,
-        })
-        
+          page,
+          count: brands.length,
+          total: totalbrands,
+          data: brands,
+          success: true,
+        });
     } catch (error) {
         res.status(500).send(error);
     }

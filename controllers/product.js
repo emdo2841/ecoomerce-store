@@ -136,7 +136,12 @@ exports.getOutOfStockProducts = async (req, res) => {
 exports.getProductsById = async (req, res) => {
     try {
         const id = req.params.id;
-        const product = await Product.findById(id);
+      const product = await Product.findById(id)
+      .populate({
+        path: 'reviews.user',
+        select: 'fullName', // assuming your User model has fullName
+      })
+      .populate('category brand');
         if (!product) {
             return res.status(404).json({
                 success: false,

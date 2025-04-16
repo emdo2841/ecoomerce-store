@@ -10,27 +10,30 @@ exports.createCategory = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
     const newCategory = await Category.create({ name, description });
-    res
-      .status(201)
-      .json({
-        message: "Category created successfully",
-        category: newCategory,
-      });
+    res.status(201).json({
+      message: "Category created successfully",
+      category: newCategory,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 exports.getAllCategory = async (req, res) => {
-  const { limit, skip } = paginate(req);
+  const { page, limit, skip } = paginate(req);
   try {
     const categories = await Category.find({})
       .limit(limit)
       .skip(skip)
       .sort({ createdAt: -1 }); // Sort by newest
+    const totalCategories = await Category.countDocuments({
+      stock: { $gt: 0 },
+    });
     res.status(200).json({
-      success: true,
-      message: "categories fetched successfully",
+      page,
+      count: categories.length,
+      total: totalCategories,
       data: categories,
+      success: true,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -49,7 +52,7 @@ exports.getCategoryById = async (req, res) => {
   }
 };
 exports.getProductByCategoryId = async (req, res) => {
-  const { limit, skip } = paginate(req);
+  const { page, limit, skip } = paginate(req);
   try {
     const category = req.params.category;
 
@@ -69,11 +72,15 @@ exports.getProductByCategoryId = async (req, res) => {
       .populate("category", "name")
       .populate("brand", "name")
       .exec();
-
+    const totalProducts = await Product.countDocuments({
+      stock: { $gt: 0 },
+    });
     res.status(200).json({
-      success: true,
-      message: "Products fetched successfully",
+      page,
+      count: products.length,
+      total: totalProducts,
       data: products,
+      success: true,
     });
   } catch (error) {
     res.status(500).json({ error: "Server error", details: error.message });
