@@ -25,9 +25,7 @@ exports.getAllCategory = async (req, res) => {
       .limit(limit)
       .skip(skip)
       .sort({ createdAt: -1 }); // Sort by newest
-    const totalCategories = await Category.countDocuments({
-      stock: { $gt: 0 },
-    });
+    const totalCategories = await Category.countDocuments();
     res.status(200).json({
       page,
       count: categories.length,

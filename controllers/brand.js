@@ -16,9 +16,7 @@ exports.getAllBrand = async (req, res) => {
     try {
         const { page, limit, skip } = paginate(req)
         const brands = await Brand.find().limit(limit).skip(skip).sort({ createdAt: -1 })// Sort by newest;
-        const totalbrands = await Band.countDocuments({
-          stock: { $gt: 0 },
-        });
+        const totalbrands = await Brand.countDocuments();
         res.status(200).json({
           page,
           count: brands.length,

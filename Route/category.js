@@ -4,8 +4,7 @@ const categoryController = require('../controllers/category');
 const{ protect, authorize } = require("../middleware/auth");
 
 categoryRoute.post('/', protect, authorize("admin", "staff"),categoryController.createCategory); // Create a new category
-categoryRoute.get('/', protect,
-  authorize("admin"), categoryController.getAllCategory); // Get all categories
+categoryRoute.get('/', categoryController.getAllCategory); // Get all categories
 categoryRoute.get(
   "/:id",
   protect,
