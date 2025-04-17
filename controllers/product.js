@@ -161,6 +161,57 @@ exports.getProductsById = async (req, res) => {
         res.status(500).json({ error: "server error" })
     }
 }
+// POST /api/products/:id/reviews
+exports.createReview = async (req, res) => {
+  const { rating, comment } = req.body;
+  const userId = req.user._id; // assuming you're using middleware to set req.user
+
+  try {
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // Check if this user already reviewed
+    const alreadyReviewed = product.reviews.find(
+      (r) => r.user.toString() === userId.toString()
+    );
+
+    if (alreadyReviewed) {
+      return res.status(400).json({ message: "You already reviewed this product" });
+    }
+
+    // Add the review
+    const newReview = {
+      user: userId,
+      rating,
+      comment,
+    };
+
+    product.reviews.push(newReview);
+    await product.save();
+
+    res.status(201).json({ message: "Review added successfully", review: newReview });
+  } catch (error) {
+    res.status(500).json({ message: "Error adding review", error: error.message });
+  }
+};
+// GET /api/products/:id/reviews
+exports.getReview = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id)
+      .populate("reviews.user", "name email"); // 👈 Populating just name and email
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.status(200).json(product.reviews);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch reviews", error: error.message });
+  }
+}
 exports.updateProductById = async (req, res) => {
     try {
         const id = req.params.id;
