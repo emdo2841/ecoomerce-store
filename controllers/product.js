@@ -149,6 +149,9 @@ exports.getProductsById = async (req, res) => {
             });
 
         }
+         product.reviews = product.reviews.sort(
+           (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+         ); 
         res.status(200).json({
             success: true,
             message: "product fetched successfully",
