@@ -29,7 +29,7 @@ productRoute.get(
   productController.getOutOfStockProducts
 );
 
-productRoute.put('/:id', protect, authorize("admin", "staff"), productController.updateProductById);
+productRoute.put('/:id', protect, productController.updateProductById);
 productRoute.get('/:id',productController.getProductsById)
 
 productRoute.delete(
