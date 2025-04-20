@@ -200,18 +200,26 @@ exports.createReview = async (req, res) => {
 // GET /api/products/:id/reviews
 exports.getReview = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id)
-      .populate("reviews.user", "name email"); // 👈 Populating just name and email
+    const product = await Product.findById(req.params.id).populate(
+      "reviews.user",
+      "name email"
+    );
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    res.status(200).json(product.reviews);
+    res.status(200).json(product); // ✅ Return the full product
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch reviews", error: error.message });
+    res
+      .status(500)
+      .json({
+        message: "Failed to fetch product with reviews",
+        error: error.message,
+      });
   }
-}
+};
+
 exports.updateProductById = async (req, res) => {
     try {
         const id = req.params.id;

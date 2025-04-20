@@ -29,7 +29,7 @@ productRoute.get(
   productController.getOutOfStockProducts
 );
 
-productRoute.post('/:id', protect, productController.updateProductById);
+productRoute.put('/:id', protect, productController.updateProductById);
 productRoute.get('/:id',productController.getProductsById)
 
 productRoute.delete(
@@ -38,11 +38,8 @@ productRoute.delete(
     authorize("admin"), productController.deleteProduct
     
 );
-productRoute.post("/products/:id/reviews", protect, productController.createReview)
+productRoute.post("/:id/reviews", protect, productController.createReview)
 
-productRoute.get("/products/:id/reviews", productController.getReview)
-
+productRoute.get("/:id/reviews", productController.getReview)
 
 module.exports = productRoute
-
-
