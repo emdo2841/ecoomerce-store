@@ -219,6 +219,54 @@ exports.getReview = async (req, res) => {
       });
   }
 };
+exports.updateReviewById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rating, comment, userId } = req.body;
+
+    if (!userId || !rating) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and rating are required",
+      });
+    }
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    const reviewIndex = product.reviews.findIndex(
+      (rev) => rev.user.toString() === userId
+    );
+
+    if (reviewIndex === -1) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to update this review.",
+      });
+    }
+
+    // Update the review fields
+    product.reviews[reviewIndex].rating = rating;
+    product.reviews[reviewIndex].comment = comment || "";
+
+    await product.save(); // triggers your average rating, money saved, etc.
+
+    return res.status(200).json({
+      success: true,
+      message: "Review updated successfully",
+      data: product,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
 
 exports.updateProductById = async (req, res) => {
     try {

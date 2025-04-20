@@ -30,6 +30,7 @@ productRoute.get(
 );
 
 productRoute.put('/:id', protect, productController.updateProductById);
+productRoute.put("/review/:id", protect, productController.updateReviewById);
 productRoute.get('/:id',productController.getProductsById)
 
 productRoute.delete(
