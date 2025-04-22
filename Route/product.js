@@ -29,14 +29,20 @@ productRoute.get(
   productController.getOutOfStockProducts
 );
 
-productRoute.put('/:id', protect, productController.updateProductById);
+productRoute.put(
+  "/:id",
+  protect,
+  authorize("admin", "staff"),
+  upload.array("images",5),
+  productController.updateProductById
+);
 productRoute.put("/review/:id", protect, productController.updateReviewById);
 productRoute.get('/:id',productController.getProductsById)
 
 productRoute.delete(
     "/:id",
     protect,
-    authorize("admin"), productController.deleteProduct
+    authorize("admin","staff"), productController.deleteProduct
     
 );
 productRoute.post("/:id/reviews", protect, productController.createReview)

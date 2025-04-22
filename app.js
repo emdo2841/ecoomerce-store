@@ -67,7 +67,7 @@ app.use(
 connectToMongo()
   .then(() => {
       console.log("MongoDB connected successfully");
-  })   
+  })  
 
   app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

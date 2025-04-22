@@ -389,7 +389,7 @@ exports.forgotPassword = async (req, res) => {
         await user.save({ validateModifiedOnly: true });
 
         // Reset password email
-        const resetLink = `https://ecoomerce-store-t40x.onrender.com/api/auth/reset-password/${token}`;
+        const resetLink = `https://ej-mart-place.vercel.app/reset-password/${token}`;
 
         await sendEmail(user.email, user.firstname, resetLink);
 

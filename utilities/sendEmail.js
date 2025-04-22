@@ -52,7 +52,7 @@ const sendEmail = async (email, firstname, resetLink = null, isPasswordChanged =
             <li>Transaction ID: ${transactionDetails.transactionId}</li>
             <li>Amount: NGN${transactionDetails.amount}</li>
             <li>Date: ${transactionDetails.date}</li>
-            <li>Status: 'https://ecoomerce-store-t40x.onrender.com/api/verify-payment/${transactionDetails.transactionId}'</li>
+            <li>Status: 'https://ej-mart-place.vercel.app/verify-payment/${transactionDetails.transactionId}'</li>
           </ul>
           <p>We appreciate your business and look forward to serving you again!</p>
         </div>
@@ -64,7 +64,7 @@ const sendEmail = async (email, firstname, resetLink = null, isPasswordChanged =
         <div style="font-family: Arial, sans-serif; color: #333;">
           <h1>Welcome, ${firstname}!</h1>
           <p>Thank you for registering with Ndoma ECommerce Store.</p>
-          <p>Click <a href="https://ecoomerce-store-t40x.onrender.com/api/product">here</a> to browse through our quality goods.</p>
+          <p>Click <a href="https://ej-mart-place.vercel.app">here</a> to browse through our quality goods.</p>
         </div>
       `;
     }
