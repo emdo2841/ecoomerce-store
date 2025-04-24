@@ -1,13 +1,17 @@
 const {
   uploadToCloudinary,
+  addImages,
+  removeImages,
   extractCloudinaryPublicId,
-  // deleteFromCloudinary,
 } = require("../utilities/cloudinary");
 require("dotenv").config();
 const mongoose = require("mongoose");
 const Product = require("../models/product");
 const paginate = require("../utilities/paginate");
-const cloudinary = require("cloudinary").v2;
+const sanitizeAndPrepareUpdateFields = require("../utilities/sanitizeAndPrepareUpdateFields");
+
+
+const { isValidObjectId } = mongoose;
 
 exports.createProduct = async (req, res) => {
   try {
@@ -387,11 +391,73 @@ exports.updateReviewById = async (req, res) => {
 //   }
 // };
 // Helper function to check if a value is a valid ObjectId
-const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
-
-exports.updateProductById = async (req, res) => {
+exports.updateProductFields = async (req, res) => {
   try {
     const id = req.params.id;
+    if (!isValidObjectId(id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid product ID" });
+    }
+
+    const updateFields = sanitizeAndPrepareUpdateFields(req.body);
+
+    const updatedProduct = await Product.findByIdAndUpdate(id, updateFields, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!updatedProduct) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Product fields updated successfully",
+      data: updatedProduct,
+    });
+  } catch (error) {
+    console.error("Field update error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+exports.addProductImages = async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!isValidObjectId(id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid product ID" });
+    }
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
+    }
+
+    const updatedImages = await addImages(product.images, req.files || []);
+    product.images = updatedImages;
+
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Images added successfully",
+      data: product,
+    });
+  } catch (error) {
+    console.error("Add image error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+exports.removeProductImages = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { imagesToRemove } = req.body;
 
     if (!isValidObjectId(id)) {
       return res
@@ -399,136 +465,38 @@ exports.updateProductById = async (req, res) => {
         .json({ success: false, message: "Invalid product ID" });
     }
 
-    const existingProduct = await Product.findById(id);
-    if (!existingProduct) {
+    if (!imagesToRemove || !Array.isArray(imagesToRemove)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "imagesToRemove must be an array" });
+    }
+
+    const product = await Product.findById(id);
+    if (!product) {
       return res
         .status(404)
         .json({ success: false, message: "Product not found" });
     }
 
-    const updateFields = { ...req.body };
-
-    // Type conversion with more checks
-    if (updateFields.price !== undefined) {
-      const price = Number(updateFields.price);
-      if (isNaN(price)) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Invalid price format" });
-      }
-      updateFields.price = price;
-    }
-    if (updateFields.stock !== undefined) {
-      const stock = Number(updateFields.stock);
-      if (isNaN(stock)) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Invalid stock format" });
-      }
-      updateFields.stock = stock;
-    }
-    if (updateFields.discountedPrice !== undefined) {
-      const discountedPrice = Number(updateFields.discountedPrice);
-      if (isNaN(discountedPrice)) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Invalid discountedPrice format" });
-      }
-      updateFields.discountedPrice = discountedPrice;
-    }
-    if (updateFields.category !== undefined) {
-      if (!isValidObjectId(updateFields.category)) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Invalid category ID" });
-      }
-      updateFields.category = new mongoose.Types.ObjectId(
-        updateFields.category
-      );
-    }
-    if (updateFields.brand !== undefined) {
-      if (!isValidObjectId(updateFields.brand)) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Invalid brand ID" });
-      }
-      updateFields.brand = new mongoose.Types.ObjectId(updateFields.brand);
-    }
-
-    let updatedImages = existingProduct.images || [];
-
-
-    // Handle image removal
-    if (req.body.imagesToRemove) {
-      const toRemove = Array.isArray(req.body.imagesToRemove)
-        ? req.body.imagesToRemove
-        : [req.body.imagesToRemove];
-
-      const imagesToRemoveErrors = [];
-      const finalImages = [];
-
-      for (const img of updatedImages) {
-        if (toRemove.includes(img)) {
-          try {
-            const publicId = extractCloudinaryPublicId(img);
-            if (publicId) {
-              await cloudinary.uploader.destroy(publicId);
-            }
-          } catch (error) {
-            console.error("Cloudinary delete error:", error);
-            imagesToRemoveErrors.push({ url: img, error: error.message });
-          }
-        } else {
-          finalImages.push(img);
-        }
-      }
-
-      updatedImages = finalImages;
-      if (imagesToRemoveErrors.length > 0) {
-        console.warn("Errors deleting some images:", imagesToRemoveErrors);
-        // You might want to inform the user about these errors in the response
-      }
-    }
-
-    // Handle new image uploads
-    if (req.files && req.files.length > 0) {
-      try {
-        const newImageUrls = await Promise.all(
-          req.files.map((file) => uploadToCloudinary(file.path))
-        );
-        updatedImages = updatedImages.concat(newImageUrls);
-        updateFields.images = updatedImages.filter(Boolean); // remove null/undefined
-      } catch (error) {
-        console.error("Cloudinary upload error:", error);
-        return res.status(500).json({
-          success: false,
-          message: "Error uploading new images",
-          details: error.message,
-        });
-      }
-    }
-
-    updateFields.images = updatedImages;
-
-    const updatedProduct = await Product.findByIdAndUpdate(id, updateFields, {
-      new: true,
-      runValidators: true,
-    });
+    const { updatedImages, errors } = await removeImages(
+      product.images,
+      imagesToRemove
+    );
+    product.images = updatedImages;
+    await product.save();
 
     res.status(200).json({
       success: true,
-      message: "Product updated successfully",
-      data: updatedProduct,
+      message: "Images removed successfully",
+      errors: errors.length ? errors : undefined,
+      data: product,
     });
   } catch (error) {
-    console.error("Update error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      details: error.message,
-    });
+    console.error("Remove image error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
 exports.deleteProduct = async (req, res) => {
   try {
     const id = req.params.id;

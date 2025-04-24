@@ -34,7 +34,27 @@ productRoute.put(
   protect,
   authorize("admin", "staff"),
   upload.array("images",5),
-  productController.updateProductById
+  productController.updateProductFields
+);
+  productRoute.patch(
+    "/:id/add-images",
+    protect,
+    authorize("admin", "staff"),
+    upload.array("images"),
+    productController.addProductImages
+);
+  productRoute.put(
+    "/:id/add-images",
+    protect,
+    authorize("admin", "staff"),
+    upload.array("images"),
+    productController.addProductImages
+  );
+productRoute.delete(
+  "/:id/remove-images",
+  protect,
+  authorize("admin", "staff"),
+  productController.removeProductImages
 );
 productRoute.put("/review/:id", protect, productController.updateReviewById);
 productRoute.get('/:id',productController.getProductsById)

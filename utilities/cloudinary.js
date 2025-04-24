@@ -36,44 +36,72 @@ const uploadToCloudinary = async (filePath) => {
       return null; // Return null instead of throwing error
   }
 };
-// Example for URL: https://res.cloudinary.com/<cloud_name>/image/upload/v1687458491/folder/filename.jpg
 
 
-// const deleteFromCloudinary = async (url) => {
-//   try {
-//     const publicId = extractCloudinaryPublicId(url);
-//     if (publicId) {
-//       await cloudinary.uploader.destroy(publicId);
-//     }
-//   } catch (error) {
-//     console.error("Cloudinary Delete Error:", error);
-//   }
-// };
-function extractCloudinaryPublicId(url) {
+const addImages = async (existingImages, files) => {
+  const uploadedImages = [];
+
+  for (const file of files) {
+    const imageUrl = await uploadToCloudinary(file.path);
+    if (imageUrl) {
+      uploadedImages.push(imageUrl);
+    }
+  }
+
+  return [...existingImages, ...uploadedImages];
+};
+/**
+ * Remove specified images from Cloudinary and return updated image list
+ * @param {string[]} existingImages - All current image URLs
+ * @param {string[]} imagesToRemove - URLs to remove
+ * @returns {Promise<{ updatedImages: string[], errors: string[] }>}
+ */
+const removeImages = async (existingImages, imagesToRemove) => {
+  const updatedImages = [];
+  const errors = [];
+
+  for (const img of existingImages) {
+    if (imagesToRemove.includes(img)) {
+      const publicId = extractCloudinaryPublicId(img);
+      if (publicId) {
+        try {
+          await cloudinary.uploader.destroy(`products/${publicId}`);
+        } catch (error) {
+          console.error("Cloudinary Deletion Error:", error);
+          errors.push(`Failed to delete: ${img}`);
+        }
+      } else {
+        errors.push(`Invalid Cloudinary URL: ${img}`);
+      }
+    } else {
+      updatedImages.push(img); // keep image
+    }
+  }
+
+  return { updatedImages, errors };
+};
+const extractCloudinaryPublicId = (url) => {
   if (!url) return null;
 
   try {
-    // Remove any query params
     const cleanUrl = url.split("?")[0];
-
-    // Get path after "/upload/"
     const parts = cleanUrl.split("/upload/");
     if (parts.length < 2) return null;
 
-    const publicIdWithExtension = parts[1]; // e.g. folder/filename.jpg
-
-    // Remove file extension
+    const publicIdWithExtension = parts[1];
     const publicId = publicIdWithExtension.split(".").slice(0, -1).join(".");
-
     return publicId;
   } catch (error) {
     console.error("Failed to extract publicId:", error);
     return null;
   }
-}
+};
+
+
 module.exports = {
   upload,
   uploadToCloudinary,
+  addImages,
+  removeImages,
   extractCloudinaryPublicId,
-  // deleteFromCloudinary,
 };
