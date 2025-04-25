@@ -278,3 +278,31 @@ exports.getAllTransaction = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 }
+
+exports.getLoggedInUserTransactions = async (req, res) => {
+  const userId = req.user._id;
+
+  try {
+    console.log("Fetching transactions for user ID:", userId);
+
+    // Fetch transactions directly and populate in one step
+    const transactions = await Transaction.find({ user: userId })
+      .populate("products.product", "name discountedPrice moneySaved")
+      .sort({ createdAt: -1 });
+
+    // Check if transactions were found
+    if (!transactions.length) {
+      return res.status(404).json({ message: "No transactions found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Transactions fetched successfully",
+      data: transactions,
+    });
+  } catch (error) {
+    console.error("Transaction fetch error:", error);
+    res.status(500).json({ error: error.message || "Server error" });
+  }
+};
+

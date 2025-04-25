@@ -53,6 +53,7 @@ productRoute.put(
 productRoute.delete(
   "/:id/remove-images",
   protect,
+  express.json(),
   authorize("admin", "staff"),
   productController.removeProductImages
 );
