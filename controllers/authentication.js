@@ -424,20 +424,14 @@ exports.resetPassword = async (req, res) => {
         }
 
         // 2️⃣ Update the user's password
-        user.setPassword(password, async function (err) {
-            if (err) {
-                return res.status(500).json({ message: "Error updating password" });
-            }
+        user.password = password; // 💥 Set the new password
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
 
-            // 3️⃣ Clear reset token fields
-            user.resetPasswordToken = undefined;
-            user.resetPasswordExpires = undefined;
-            await user.save({validateModifiedOnly: true});
-            // Send password change confirmation email
-            await sendEmail(user.email, user.firstname, null, true);
-            res.json({ message: "Password has been reset successfully" });
-        });
+        await user.save({ validateModifiedOnly: true }); // Pre-save hook will hash password
+        await sendEmail(user.email, user.fullName, null, true); // fullName not firstname
 
+        res.json({ message: "Password has been reset successfully" });
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
     }

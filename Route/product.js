@@ -25,7 +25,7 @@ productRoute.get("/flash-sale", productController.getflashSaleProducts)
 productRoute.get(
   "/out-of-stock",
   protect,
-  authorize("admin"), // Only admins can access this route
+  authorize("admin", "staff"), // Only admins can access this route
   productController.getOutOfStockProducts
 );
 
