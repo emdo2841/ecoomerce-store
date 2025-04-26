@@ -436,21 +436,28 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 }
+
 exports.updatePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
-    const user = req.user; // assuming req.user is set correctly
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/; // At least 8 characters, including letters and numbers
-    // Validate password format
+
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized. Please log in." });
+    }
+
+    // 🛠 Find the actual user from DB
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
     if (!passwordRegex.test(newPassword)) {
       return res.status(400).json({
         success: false,
-        message:
-          "Password must be at least 8 characters long and include both letters and numbers",
+        message: "Password must be at least 8 characters long and include both letters and numbers",
       });
-    }
-    if (!user) {
-      return res.status(401).json({ message: "Unauthorized. Please log in." });
     }
 
     const isMatch = await user.comparePassword(oldPassword);
@@ -462,10 +469,11 @@ exports.updatePassword = async (req, res) => {
     user.password = newPassword;
     await user.save({ validateModifiedOnly: true });
 
-    await sendEmail(user.email, user.firstname, null, true);
+    await sendEmail(user.email, user.fullName, null, true);
 
     res.json({ message: "Password updated successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error });
+    console.error(error); // <--- log error to debug properly
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
