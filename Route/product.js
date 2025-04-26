@@ -50,7 +50,8 @@ productRoute.put(
     upload.array("images"),
     productController.addProductImages
   );
-productRoute.delete(
+  // route to remove images
+productRoute.post(
   "/:id/remove-images",
   protect,
   express.json(),
