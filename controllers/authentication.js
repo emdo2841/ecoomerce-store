@@ -470,8 +470,13 @@ exports.updatePassword = async (req, res) => {
     await user.save({ validateModifiedOnly: true });
 
     await sendEmail(user.email, user.fullName, null, true);
+ // 🆕 Generate a fresh token
+    const token = generateToken(user);
 
-    res.json({ message: "Password updated successfully" });
+    res.json({ 
+      message: "Password updated successfully",
+      accessToken: token, // <-- send new access token!
+    });
   } catch (error) {
     console.error(error); // <--- log error to debug properly
     res.status(500).json({ message: "Server error", error: error.message });
