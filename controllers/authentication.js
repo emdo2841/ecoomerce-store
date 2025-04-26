@@ -436,41 +436,36 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 }
-
 exports.updatePassword = async (req, res) => {
-    try {
-        const { oldPassword, newPassword } = req.body;
-        const user = req.user; // Get the logged-in user
-
-        if (!user) {
-            return res.status(401).json({ message: "Unauthorized. Please log in." });
-        }
-
-        // Authenticate the user using the old password
-        user.authenticate(oldPassword, async (err, authenticatedUser) => {
-            if (err || !authenticatedUser) {
-                return res.status(400).json({ message: "Incorrect old password" });
-            }
-
-            // Set the new password
-            user.setPassword(newPassword, async (err) => {
-              if (err) {
-                return res
-                  .status(500)
-                  .json({ message: "Error updating password" });
-              }
-              // Clear reset token fields
-              user.resetPasswordToken = undefined;
-              user.resetPasswordExpires = undefined;
-              await user.save({validateModifiedOnly: true});
-
-              // Send email notification for password change
-              await sendEmail(user.email, user.firstname, null, true);
-
-              res.json({ message: "Password updated successfully" });
-            });
-        });
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error });
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const user = req.user; // assuming req.user is set correctly
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/; // At least 8 characters, including letters and numbers
+    // Validate password format
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Password must be at least 8 characters long and include both letters and numbers",
+      });
     }
-}
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized. Please log in." });
+    }
+
+    const isMatch = await user.comparePassword(oldPassword);
+
+    if (!isMatch) {
+      return res.status(400).json({ message: "Incorrect old password" });
+    }
+
+    user.password = newPassword;
+    await user.save({ validateModifiedOnly: true });
+
+    await sendEmail(user.email, user.firstname, null, true);
+
+    res.json({ message: "Password updated successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
