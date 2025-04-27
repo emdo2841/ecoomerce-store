@@ -472,7 +472,7 @@ exports.updatePassword = async (req, res) => {
     await sendEmail(user.email, user.fullName, null, true);
  // 🆕 Generate a fresh token
     const token = generateToken(user);
-
+    
     res.json({ 
       message: "Password updated successfully",
       accessToken: token, // <-- send new access token!
