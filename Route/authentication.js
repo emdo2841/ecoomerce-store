@@ -68,7 +68,7 @@ authenticate.get(
   authController.getAdminsOrStaffS
 );
 authenticate.put(
-  "/update-profile",
+  "/update-profile/:id",
   upload.single("image"),
   protect,
   authController.updateUser
