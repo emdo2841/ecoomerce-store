@@ -82,32 +82,72 @@ exports.createProduct = async (req, res) => {
   }
 };
 
+// exports.getProducts = async (req, res) => {
+//   try {
+//     const { page, limit, skip } = paginate(req);
+//     const products = await Product.find({ stock: { $gt: 0 } })
+//       .limit(limit)
+//       .skip(skip)
+//       .sort({ createdAt: -1 }) // Sort by newest
+//       .populate("category", "name")
+//       .populate("brand", "name")
+//       .exec();
+//     const totalProducts = await Product.countDocuments({
+//       stock: { $gt: 0 },
+//     });
+//     res
+//       .status(200)
+//       .json({
+//         page,
+//         count: products.length,
+//         total: totalProducts,
+//         data: products,
+//         success: true,
+//       });
+//   } catch (error) {
+//     res.status(500).json({ error: "error fetching product", details: error });
+//   }
+// };
+
 exports.getProducts = async (req, res) => {
   try {
     const { page, limit, skip } = paginate(req);
-    const products = await Product.find({ stock: { $gt: 0 } })
+    const { search } = req.query;
+
+    // build a filter object
+    const filter = { stock: { $gt: 0 } };
+
+    if (search) {
+      // search by name OR description (case-insensitive)
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const products = await Product.find(filter)
       .limit(limit)
       .skip(skip)
-      .sort({ createdAt: -1 }) // Sort by newest
+      .sort({ createdAt: -1 })
       .populate("category", "name")
       .populate("brand", "name")
       .exec();
-    const totalProducts = await Product.countDocuments({
-      stock: { $gt: 0 },
+
+    const totalProducts = await Product.countDocuments(filter);
+
+    res.status(200).json({
+      page,
+      count: products.length,
+      total: totalProducts,
+      data: products,
+      success: true,
     });
-    res
-      .status(200)
-      .json({
-        page,
-        count: products.length,
-        total: totalProducts,
-        data: products,
-        success: true,
-      });
   } catch (error) {
+    console.error("getProducts error:", error);
     res.status(500).json({ error: "error fetching product", details: error });
   }
 };
+
 
 exports.getflashSaleProducts = async (req, res) => {
   try {
