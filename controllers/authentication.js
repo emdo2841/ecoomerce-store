@@ -352,20 +352,34 @@ exports.deleteUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const imageUrl = req.file ? await uploadToCloudinary(req.file.path) : null;
-    const { fullName, address, phone } = req.body
+    const { fullName, address, phone } = req.body;
+
+    const updateFields = {
+      fullName,
+      address,
+      phone,
+    };
+
+    if (imageUrl) {
+      updateFields.image = imageUrl;
+    }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { fullName, address, phone, imageUrl },
+      updateFields,
       { new: true }
     );
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        res.status(200).json({ message: "User updated successfully" });
-    } catch (error) {
-        res.status(500).json({ message: "Server error" });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
     }
-}
+
+    res.status(200).json({ success: true, message: "User updated successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
 
 exports.forgotPassword = async (req, res) => {
     try {
