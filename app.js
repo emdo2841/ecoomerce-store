@@ -5,7 +5,10 @@
   const morgan = require("morgan");
   const winston = require("winston");
   const fs = require("fs");
-
+//   const http = require("http");
+//   const setupSocket = require("./socket");
+// const supportRoutes = require("./Route/support");
+  
 
 const authenticateRoute = require('./Route/authentication');
   const { protect, authorize } = require("./middleware/auth");
@@ -71,13 +74,22 @@ connectToMongo()
 
   app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-  app.use(express.json({ limit: "50mb" }));
+app.use(express.json({ limit: "50mb" }));
+
+// const server = http.createServer(app);
+// const io = setupSocket(server);
+//   app.use((req, res, next) => {
+//     req.io = io;
+//     next();
+//   });
+
 
   app.use("/api/auth", authenticateRoute);
   app.use("/api/product", productRoute); // isAuthenticated protects route
   app.use("/api/brand", brandRoute);
   app.use("/api/category", categoryRoute);
   app.use("/api/transact", protect, transactionRoute);
+  // app.use("/api/support", supportRoutes);
 
   app.get("/", (req, res) => {
       res.status(200).send("homepage");

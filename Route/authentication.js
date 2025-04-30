@@ -14,7 +14,7 @@ authenticate.post("/refresh-token", authController.refreshToken);
 authenticate.get(
   "/user/:id",
   protect,
-  authorize("admin"), authController.getUserById
+  authController.getUserById
 )
 
 authenticate.get(
