@@ -43,7 +43,7 @@ exports.createTransaction = async (req, res) => {
   try {
     const { user, products, email, address } = req.body; // Include address in the request body
 
-    // Validate input
+    // Validate input 
     if (
       !user ||
       !Array.isArray(products) ||

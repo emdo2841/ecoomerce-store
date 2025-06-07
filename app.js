@@ -50,9 +50,10 @@ app.use(helmet());
 
   app.use(express.json());
   const allowedOrigins = [
-  "http://localhost:3000",
-  "https://ej-mart-place.vercel.app"
-];
+    "http://localhost:3000",
+    "https://ej-mart-place.vercel.app",
+    "http://localhost:5173/",
+  ];
 
 app.use(
   cors({
