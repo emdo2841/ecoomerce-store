@@ -53,6 +53,7 @@ app.use(helmet());
     "http://localhost:3000",
     "https://ej-mart-place.vercel.app",
     "http://localhost:5173",
+    "https://ej-premium.vercel.app"
   ];
 
 app.use(
